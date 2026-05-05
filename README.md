@@ -1,6 +1,6 @@
 # StreamNest Analytics on GCP — End-to-End Implementation Guide
 
-**Course:** CE 308/408 Cloud Computing — Assignment 2
+**Course:** CE 408 Cloud Computing — Assignment 2<br>
 **Goal:** Build a working proof-of-concept on GCP that demonstrates (1) a containerized microservice on GKE and (2) a data lakehouse pipeline using Cloud Storage + BigQuery, then submit a professional design document for StreamNest's CTO.
 
 > **This guide assumes you are working entirely from Google Cloud Shell** (the terminal in your browser). No local installs of Docker, gcloud, or kubectl needed. Just follow each phase top-to-bottom.
@@ -56,7 +56,7 @@ gcloud services enable \
 
 This takes ~1 minute. Wait for it to finish before moving on.
 
-### ✅ Checkpoint
+### Checkpoint
 Run `gcloud config list` — confirm `project` and `region` are set correctly.
 
 ---
@@ -225,7 +225,7 @@ with open("watch_events.csv", "w", newline="") as f:
 print(f"Wrote {rows} rows to watch_events.csv")
 ```
 
-### ✅ Checkpoint
+### Checkpoint
 `ls -R ~/streamnest` should show:
 ```
 api/app.py  api/Dockerfile  api/requirements.txt
@@ -297,7 +297,7 @@ curl http://$EXT_IP/catalog/c002
 
 Open `http://$EXT_IP/catalog` in a browser tab too — that's the screenshot you'll embed.
 
-### 2.6 Demonstrate scaling (screenshot worthy)
+### 2.6 Demonstrate scaling
 
 ```bash
 kubectl scale deployment catalog-api --replicas=6
@@ -325,7 +325,7 @@ while true; do curl -s -o /dev/null -w "%{http_code}\n" http://$EXT_IP/health; s
 
 You should see an unbroken stream of `200`s — that's the zero-downtime evidence.
 
-### ✅ Checkpoint
+### Checkpoint
 - `kubectl get pods` shows pods Running
 - `curl http://$EXT_IP/catalog` returns the JSON catalog
 - Rolling redeploy completed without a single non-200 response
@@ -362,7 +362,7 @@ bq --location=$REGION mk --dataset ${PROJECT_ID}:streamnest_lake
 
 ### 3.4 Create the external table over the raw CSV
 
-Run in BigQuery console (https://console.cloud.google.com/bigquery) → click ➕ COMPOSE NEW QUERY, paste, replace `<PROJECT_ID>`:
+Run in BigQuery console (https://console.cloud.google.com/bigquery) → click **+ COMPOSE NEW QUERY**, paste, replace `<PROJECT_ID>`:
 
 ```sql
 CREATE OR REPLACE EXTERNAL TABLE `<PROJECT_ID>.streamnest_lake.watch_events_ext` (
@@ -420,7 +420,7 @@ QUALIFY rank_in_region = 1
 ORDER BY region;
 ```
 
-### ✅ Checkpoint
+### Checkpoint
 - GCS console shows `watch_events.csv` under `raw/watch_events/`
 - BigQuery sidebar shows `streamnest_lake` dataset with `watch_events_ext` (external) and `top_content_by_region` (table)
 - Final query returns rows showing top content per region
@@ -437,9 +437,9 @@ Screenshots were taken inline during each phase. The table below maps each file 
 
 | File | What it shows | Used in doc |
 |------|---------------|-------------|
-| `screenshots/01.png` | GCP Console project dashboard for `cloud-assignment-2-495322` | Section 1 — active project |
-| `screenshots/04.png` | `gcloud services enable` output + `gcloud config list` confirmation | Section 4.3 — Phase 0 setup |
-| `screenshots/11.png` | `ls -R ~/streamnest` directory tree showing `api/`, `k8s/`, `data/` | Section 4.4 — project scaffold |
+| `screenshots/01.png` | GCP Console project dashboard for `cloud-assignment-2-495322` | Section 2.1 |
+| `screenshots/04.png` | `gcloud services enable` output + `gcloud config list` confirmation | Section 4.3 — Project Scaffold and Configuration |
+| `screenshots/11.png` | `ls -R ~/streamnest` directory tree showing `api/`, `k8s/`, `data/` | Section 4.5 — Building and Deploying the Image |
 
 ---
 
@@ -447,14 +447,14 @@ Screenshots were taken inline during each phase. The table below maps each file 
 
 | File | What it shows | Used in doc |
 |------|---------------|-------------|
-| `screenshots/13.png` | Cloud Build pushing `catalog-api:v1` + all pods in `Running` state | Section 4.4 — build and deploy |
-| `screenshots/14.png` | `gen_watch_events.py` run + CSV `head` output confirming 50,000 rows | Section 4.4 — dataset generated |
-| `screenshots/31.png` | Browser at `/` returning pod #1 hostname | Section 4.5 — load balancing (subfigure a) |
-| `screenshots/32.png` | Browser at `/` returning pod #2 hostname (different pod) | Section 4.5 — load balancing (subfigure b) |
-| `screenshots/28.png` | Browser `GET /catalog` returning full JSON content catalog | Section 4.5 — API response |
-| `screenshots/34.png` | Health-check curl loop showing continuous `200`s during scaling test | Section 4.6 — horizontal scaling |
-| `screenshots/35.png` | Cloud Build pushing `catalog-api:v2` to Artifact Registry | Section 4.7 — zero-downtime redeploy |
-| `screenshots/40.png` | Unbroken stream of `200`s in terminal during rolling update | Section 4.7 — zero downtime proven |
+| `screenshots/13.png` | Cloud Build pushing `catalog-api:v1` + all pods in `Running` state | Section 4.7 — Horizontal Scaling |
+| `screenshots/14.png` | `gen_watch_events.py` run + CSV `head` output confirming 50,000 rows | Section 4.7 — Horizontal Scaling |
+| `screenshots/31.png` | Browser at `/` returning pod #1 hostname | Section 4.7 — Horizontal Scaling (subfigure a) |
+| `screenshots/32.png` | Browser at `/` returning pod #2 hostname (different pod) | Section 4.7 — Horizontal Scaling (subfigure b) |
+| `screenshots/28.png` | Browser `GET /catalog` returning full JSON content catalog | Section 4.7 — Horizontal Scaling |
+| `screenshots/34.png` | Health-check curl loop showing continuous `200`s during scaling test | Section 4.7 — Horizontal Scaling |
+| `screenshots/35.png` | Cloud Build pushing `catalog-api:v2` to Artifact Registry | Section 4.8 — Zero-Downtime Rolling Redeploy |
+| `screenshots/40.png` | Unbroken stream of `200`s in terminal during rolling update | Section 4.8 — Zero-Downtime Rolling Redeploy |
 
 ---
 
@@ -462,11 +462,11 @@ Screenshots were taken inline during each phase. The table below maps each file 
 
 | File | What it shows | Used in doc |
 |------|---------------|-------------|
-| `screenshots/22.png` | GCS bucket showing `watch_events.csv` under `raw/watch_events/` | Section 5.3 — raw zone populated |
-| `screenshots/20.png` | BigQuery query editor with aggregation SQL + `streamnest_lake` sidebar | Section 5.4 — external table query |
-| `screenshots/23.png` | `CREATE EXTERNAL TABLE` SQL + sample data rows from `watch_events_ext` | Section 5.4 — external table created |
-| `screenshots/19.png` | BigQuery `Query completed` confirming `top_content_by_region` created | Section 5.5 — curated table created |
-| `screenshots/21.png` | Final `top_content_by_region` table preview (region, content, watch hours) | Section 5.5 — gold layer ready |
+| `screenshots/22.png` | GCS bucket showing `watch_events.csv` under `raw/watch_events/` | Section 5.3 — Step 1: Raw Dataset in Cloud Storage |
+| `screenshots/20.png` | BigQuery query editor with aggregation SQL + `streamnest_lake` sidebar | Section 5.4 — Step 2: BigQuery External Table |
+| `screenshots/23.png` | `CREATE EXTERNAL TABLE` SQL + sample data rows from `watch_events_ext` | Section 5.4 — Step 2: BigQuery External Table |
+| `screenshots/19.png` | BigQuery `Query completed` confirming `top_content_by_region` created | Section 5.5 — Step 3: Curated Aggregated Table |
+| `screenshots/21.png` | Final `top_content_by_region` table preview (region, content, watch hours) | Section 5.5 — Step 3: Curated Aggregated Table |
 
 ---
 
@@ -479,7 +479,7 @@ Screenshots were taken inline during each phase. The table below maps each file 
 
 ---
 
-> **Tip:** When embedding in the design doc, label each one as *Figure X.Y — description* and reference it in the text (e.g. "As shown in Figure 4.3..."). Use **Win + Shift + S** to crop any remaining screenshots you still need.
+> **Tip:** When embedding in the design doc, label each one as *Figure 1, Figure 2, Figure 3, ...* and reference it in the text (e.g. "As shown in Figure 3..."). Use **Win + Shift + S** to crop any remaining screenshots you still need.
 
 ---
 
@@ -494,11 +494,14 @@ This is the **actual deliverable**. Use the fillable template below — replace 
 
 ### Cover page
 ```
-StreamNest Cloud Migration: Design Proposal
-Prepared for:  CTO, StreamNest
-Prepared by:   [FILL: your name + roll number]
-Course:        CE 308/408 Cloud Computing — Assignment 2
-Date:          [FILL: today's date]
+StreamNest Cloud Migration: Design Proposal for GCP Infrastructure
+Prepared for:  Chief Technology Officer, StreamNest
+Prepared by:   Ahmed Musharaf
+               Reg No: 2022067
+Course:        CE 408 — Cloud Computing
+               Assignment 2
+Submitted to:  Miss Safia Baloch
+Date:          May 5, 2026
 ```
 
 ---
@@ -515,6 +518,8 @@ Date:          [FILL: today's date]
 ### Section 2 — Problem Restatement (½ page)
 
 > *Show the CTO you understood their pain.*
+
+**Embed screenshot:** `01.png` — GCP Console project dashboard.
 
 Bullet points to expand on:
 - **Engineering pain:** manual deploys take hours, dev/prod drift, no horizontal scaling.
@@ -680,10 +685,6 @@ bq rm -r -f -d cloud-assignment-2-495322:streamnest_lake
 
 > `bq rm` prints nothing on success — an empty prompt return means it worked.
 
-**📸 Take two screenshots for Appendix C of the design document:**
-- `42.png` — Cloud Shell showing the workload/bucket deletion output
-- `43.png` — Cloud Shell showing the successful cluster + BigQuery dataset deletion
-
 ---
 
 ## Appendix A — Troubleshooting
@@ -712,14 +713,14 @@ bq rm -r -f -d cloud-assignment-2-495322:streamnest_lake
 | BigQuery external table | Phase 3.4 |
 | Aggregated table answering a real business question | Phase 3.5 (top content per region) |
 | Written design document with embedded screenshots | Phase 5 |
-| Screenshots: GKE deployment, public API response, GCS bucket, BigQuery analytics table | Phase 4 checklist (#01–13) |
+| Screenshots: GKE deployment, public API response, GCS bucket, BigQuery analytics table | Phase 4 checklist |
 
 ---
 
 ## Final submission checklist
 
 - [ ] All Phase 4 screenshots saved (01.png, 04.png, 11.png, 13.png, 14.png, 19.png, 20.png, 21.png, 22.png, 23.png, 28.png, 31.png, 32.png, 34.png, 35.png, 40.png)
-- [ ] Phase 6 cleanup screenshots saved (42.png, 43.png)
+- [ ] Resource cleanup screenshots saved (42.png, 43.png)
 - [ ] `architecture.png` exported from draw.io and uploaded to Overleaf root
 - [ ] All screenshots uploaded to `screenshots/` folder in Overleaf
 - [ ] Design document compiled in Overleaf without errors
@@ -727,5 +728,9 @@ bq rm -r -f -d cloud-assignment-2-495322:streamnest_lake
 - [ ] Architecture diagram embedded as image (not ASCII)
 - [ ] Appendix A includes all manifests and SQL
 - [ ] Document exported as **PDF**
-- [ ] Filename matches your course's expected pattern (e.g., `CE408_A2_<RollNumber>_<Name>.pdf`)
+- [ ] File is named `CE408_A2_2022067.pdf`
 - [ ] Phase 6 cleanup executed to stop billing
+
+---
+
+Good luck with your submission!
