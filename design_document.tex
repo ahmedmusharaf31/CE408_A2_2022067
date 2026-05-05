@@ -1,0 +1,817 @@
+% ============================================================
+%  StreamNest Cloud Migration — Design Document
+%  CE 308/408 Cloud Computing — Assignment 2
+%
+%  HOW TO USE IN OVERLEAF:
+%  1. Upload this .tex file to a new Overleaf project
+%  2. Create a folder called "screenshots" in Overleaf
+%  3. Upload these 18 screenshots into that folder:
+%     1, 4, 11, 13, 14, 19, 20, 21, 22, 23, 28, 31, 32, 34, 35, 40, 42, 43
+%  4. Upload architecture.png (draw.io export) to the ROOT
+%  5. Hit Compile
+% ============================================================
+
+\documentclass[12pt, a4paper]{article}
+
+% ── Packages ────────────────────────────────────────────────
+\usepackage[T1]{fontenc}
+\usepackage[top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage{setspace}
+\usepackage{parskip}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{tabularx}
+\usepackage{mdframed}
+\usepackage{tocloft}
+
+% ── Colors ──────────────────────────────────────────────────
+\definecolor{gcpblue}{RGB}{26, 115, 232}
+\definecolor{gcpgreen}{RGB}{52, 168, 83}
+\definecolor{darkgray}{RGB}{45, 55, 72}
+\definecolor{lightgray}{RGB}{245, 247, 250}
+
+% Nord-inspired code block palette (easy on the eyes, prints well)
+\definecolor{nordbg}{RGB}{236, 239, 244}       % light blue-gray background
+\definecolor{nordtext}{RGB}{46, 52, 64}        % dark navy text
+\definecolor{nordblue}{RGB}{94, 129, 172}      % muted blue — keywords
+\definecolor{nordgreen}{RGB}{163, 190, 140}    % muted green — strings
+\definecolor{nordcyan}{RGB}{136, 192, 208}     % soft cyan — comments
+\definecolor{nordred}{RGB}{191, 97, 106}       % muted red — special
+
+% SQL block palette (slightly warmer tint)
+\definecolor{sqlbg}{RGB}{237, 242, 247}        % cool off-white
+\definecolor{sqlkw}{RGB}{43, 108, 176}         % medium blue — SQL keywords
+
+% ── Hyperref ────────────────────────────────────────────────
+\hypersetup{
+    colorlinks=true,
+    linkcolor=gcpblue,
+    urlcolor=gcpblue,
+    citecolor=gcpblue,
+    pdfauthor={Ahmed Musharaf},
+    pdftitle={StreamNest Cloud Migration Design Proposal},
+}
+
+% ── Section formatting ───────────────────────────────────────
+\titleformat{\section}
+  {\Large\bfseries\color{gcpblue}}
+  {\thesection.}{0.8em}{}[\titlerule]
+
+\titleformat{\subsection}
+  {\large\bfseries\color{darkgray}}
+  {\thesubsection.}{0.6em}{}
+
+\titleformat{\subsubsection}
+  {\normalsize\bfseries\color{darkgray}}
+  {\thesubsubsection.}{0.5em}{}
+
+% ── Code listing styles ──────────────────────────────────────
+
+% Shell / YAML / Dockerfile blocks — Nord light theme
+\lstdefinestyle{gcpcode}{
+    backgroundcolor=\color{nordbg},
+    basicstyle=\ttfamily\small\color{nordtext},
+    keywordstyle=\color{nordblue}\bfseries,
+    commentstyle=\color{nordcyan}\itshape,
+    stringstyle=\color{nordgreen},
+    columns=fixed,
+    keepspaces=true,
+    breaklines=true,
+    breakatwhitespace=false,
+    showstringspaces=false,
+    frame=leftline,
+    framerule=3pt,
+    rulecolor=\color{nordblue},
+    xleftmargin=14pt,
+    xrightmargin=6pt,
+    aboveskip=10pt,
+    belowskip=10pt,
+    numbers=none,
+    tabsize=2,
+}
+
+% SQL blocks — warmer off-white with GCP blue accent
+\lstdefinestyle{sqlstyle}{
+    backgroundcolor=\color{sqlbg},
+    basicstyle=\ttfamily\small\color{darkgray},
+    keywordstyle=\color{sqlkw}\bfseries,
+    commentstyle=\color{nordcyan}\itshape,
+    stringstyle=\color{nordred},
+    breaklines=true,
+    showstringspaces=false,
+    frame=leftline,
+    framerule=3pt,
+    rulecolor=\color{gcpblue},
+    xleftmargin=14pt,
+    xrightmargin=6pt,
+    aboveskip=10pt,
+    belowskip=10pt,
+    numbers=none,
+    tabsize=2,
+    morekeywords={CREATE,OR,REPLACE,TABLE,EXTERNAL,AS,SELECT,FROM,WHERE,
+                  GROUP,BY,ORDER,QUALIFY,RANK,OVER,PARTITION,SUM,COUNT,
+                  ROUND,AVG,OPTIONS,FORMAT,URIS,SKIP_LEADING_ROWS,INT64,
+                  STRING,TIMESTAMP,DISTINCT,HAVING,LIMIT,WITH,JOIN,ON,
+                  LEFT,RIGHT,INNER,OUTER,CAST},
+}
+
+% ── Header / Footer ─────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{darkgray}StreamNest Cloud Migration: Design Proposal}
+\fancyhead[R]{\small\color{darkgray}CE 408: Cloud Computing}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Caption style ────────────────────────────────────────────
+\captionsetup{
+    font=small,
+    labelfont={bf,color=gcpblue},
+    format=plain,
+    justification=centering,
+}
+
+% ── Info box (wraps code blocks) ─────────────────────────────
+\newmdenv[
+    backgroundcolor=nordbg,
+    linecolor=nordblue,
+    linewidth=0pt,
+    topline=false,
+    rightline=false,
+    bottomline=false,
+    leftline=false,
+    innerleftmargin=0pt,
+    innerrightmargin=0pt,
+    innertopmargin=0pt,
+    innerbottommargin=0pt,
+    skipabove=6pt,
+    skipbelow=6pt,
+]{codebox}
+
+% ── Screenshot helper ────────────────────────────────────────
+% \screenshot{path}{caption text}{label suffix}
+\newcommand{\screenshot}[3]{%
+    \begin{figure}[htbp]
+        \centering
+        \fbox{\includegraphics[width=0.93\linewidth]{#1}}
+        \caption{#2}
+        \label{fig:#3}
+    \end{figure}%
+}
+
+% ════════════════════════════════════════════════════════════
+\begin{document}
+\setstretch{1.15}
+
+% ── TITLE PAGE ───────────────────────────────────────────────
+\begin{titlepage}
+    \centering
+    \vspace*{0.6cm}
+
+    \includegraphics[width=0.22\linewidth]{giki-logo.jpeg}\\[0.4cm]
+    {\Large\bfseries Ghulam Ishaq Khan Institute of Engineering\\Sciences and Technology}\\[0.3cm]
+    {\large Department of Computer Engineering}\\[1cm]
+
+    \rule{\linewidth}{1.5pt}\\[0.3cm]
+    {\LARGE\bfseries\color{gcpblue}
+        StreamNest Cloud Migration:\\[0.2cm]
+        Design Proposal for GCP Infrastructure
+    }\\[0.3cm]
+    \rule{\linewidth}{1.5pt}\\[0.9cm]
+
+    {\large\bfseries Prepared for:}\\[0.2cm]
+    {\large Chief Technology Officer, StreamNest}\\[0.8cm]
+
+    {\large\bfseries Prepared by:}\\[0.2cm]
+    {\large Ahmed Musharaf}\\[0.1cm]
+    {\large Reg No: 2022067}\\[0.8cm]
+
+    {\large\bfseries Course:}\\[0.2cm]
+    {\large CE 408 — Cloud Computing}\\[0.1cm]
+    {\large Assignment 2}\\[0.8cm]
+
+    {\large\bfseries Submitted to:}\\[0.2cm]
+    {\large Miss Safia Baloch}\\[0.8cm]
+
+    {\large\bfseries Date:} {\large May 5, 2026}
+\end{titlepage}
+
+% ── SUBTITLE PAGE ────────────────────────────────────────────
+\thispagestyle{empty}
+\vspace*{\fill}
+\begin{center}
+    {\small\color{darkgray}
+        Cloud infrastructure implemented on Google Cloud Platform (GCP)\\
+        using GKE Autopilot, Cloud Storage, and BigQuery.
+    }
+\end{center}
+\vspace*{\fill}
+\newpage
+
+% ── TABLE OF CONTENTS ────────────────────────────────────────
+\tableofcontents
+\newpage
+
+% ════════════════════════════════════════════════════════════
+\section{Executive Summary}
+% ════════════════════════════════════════════════════════════
+
+StreamNest's current platform — microservices running on bare virtual machines combined with unstructured MySQL databases and flat-file data stores — is the root cause of two critical operational failures: slow, error-prone deployments and the data science team's complete inability to derive timely insights. With the user base scaling from 50,000 to over 2 million active users across Southeast Asia, the existing infrastructure is no longer viable.
+
+This proposal outlines a two-pillar migration to \textbf{Google Cloud Platform (GCP)} designed to resolve both problems simultaneously:
+
+\begin{enumerate}
+    \item \textbf{Containerized Microservices on GKE Autopilot} — packaging backend services into Docker containers and deploying them on Google Kubernetes Engine, eliminating environment drift and reducing deployment time from hours to minutes with zero downtime.
+    \item \textbf{Data Lakehouse on Cloud Storage + BigQuery} — establishing a unified, scalable data platform where raw event logs land in Cloud Storage and are queryable through BigQuery, enabling the data science team to build recommendation models and generate business reports from clean, structured data.
+\end{enumerate}
+
+A working proof-of-concept has been delivered on GCP: a \textbf{Content Catalog API} running on GKE that scales horizontally, redeploys with zero downtime, and is accessible via a public endpoint — alongside a queryable BigQuery layer over a 50,000-event simulated dataset that surfaces real business insights. Figure~\ref{fig:dashboard} shows the active GCP project used for this proof-of-concept.
+
+\screenshot{screenshots/1.png}{GCP Console project dashboard for \texttt{cloud-assignment-2-495322} — the active project used throughout this proof-of-concept.}{dashboard}
+
+% ════════════════════════════════════════════════════════════
+\section{Problem Restatement}
+% ════════════════════════════════════════════════════════════
+
+\subsection{Engineering Pain: Bare VMs and Manual Deployments}
+
+StreamNest's engineering team currently runs three independent microservices — a user authentication service, a content recommendation engine, and a billing service — each on bare virtual machines. This approach has three compounding problems:
+
+\begin{itemize}
+    \item \textbf{Environment inconsistency:} Software libraries and configurations differ between development and production environments, causing bugs that only surface at deployment time.
+    \item \textbf{Slow, manual deployments:} Each deployment requires SSH access, manual file transfers, and restarting processes — a process taking hours and prone to human error.
+    \item \textbf{No horizontal scaling:} Bare VMs cannot automatically add capacity during peak streaming hours without manual intervention and significant lead time.
+\end{itemize}
+
+\subsection{Data Pain: No Unified Analytics Platform}
+
+The data science team has no shared, structured access to StreamNest's data:
+
+\begin{itemize}
+    \item Raw event logs (watch history, clickstream, billing records) arrive in different formats — some in real-time bursts during peak hours, others as nightly batch dumps.
+    \item Data is siloed across on-premises MySQL databases and local flat files with no common schema or query interface.
+    \item Building recommendation models or generating executive reports requires weeks of manual data preparation by engineers.
+\end{itemize}
+
+\subsection{Business Consequence}
+
+At 2 million active users and growing, these problems translate directly to lost revenue: slower feature delivery, degraded video quality during peaks, and recommendations that are stale or absent — all of which drive user churn.
+
+% ════════════════════════════════════════════════════════════
+\section{Proposed Architecture}
+% ════════════════════════════════════════════════════════════
+
+The proposed architecture has two independent but complementary layers, both hosted on GCP. Figure~\ref{fig:arch} shows the complete end-to-end design.
+
+\screenshot{architecture.png}{StreamNest GCP Architecture — Microservices Layer (top) handling live user traffic via GKE, and Data Lakehouse Layer (bottom) processing event data through Cloud Storage and BigQuery.}{arch}
+
+\subsection{Layer 1: Microservices on GKE Autopilot}
+
+Internet traffic from StreamNest's 2M+ users reaches a \textbf{GCP HTTP(S) Load Balancer}, which distributes requests across container pods inside a \textbf{GKE Autopilot cluster}. Container images are built by \textbf{Cloud Build} and stored in \textbf{Artifact Registry}. The GKE control plane manages pod scheduling, health checks, and rolling updates automatically — no node-level operations are required from the engineering team.
+
+\subsection{Layer 2: Data Lakehouse on GCS + BigQuery}
+
+Event data from all StreamNest sources lands in \textbf{Cloud Storage} as immutable raw files (the \textit{raw zone}). \textbf{BigQuery} creates an \textit{external table} directly over this data, enabling SQL queries without moving or copying files. Aggregated results are materialized into \textbf{BigQuery native tables} (the \textit{curated zone}), which feed downstream consumers including Looker Studio dashboards, Vertex AI models, and dbt transformation pipelines.
+
+% ════════════════════════════════════════════════════════════
+\section{Microservices on GKE: Implementation}
+% ════════════════════════════════════════════════════════════
+
+\subsection{Why Containers Solve the Deployment Problem}
+
+A Docker container packages an application together with all its dependencies — runtime, libraries, and configuration — into a single immutable artifact. When this artifact is deployed, it behaves identically in development, staging, and production. This directly eliminates the environment drift that currently causes StreamNest's deployment failures.
+
+Deployment time drops from hours to under two minutes: a new container image is built by \textbf{Cloud Build}, pushed to \textbf{Artifact Registry}, and a single \texttt{kubectl set image} command triggers a rolling update across the cluster.
+
+\subsection{Why GKE Autopilot Specifically}
+
+Three alternatives were considered:
+
+\begin{table}[htbp]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabularx}{\linewidth}{>{\bfseries}l X X}
+\toprule
+Option & Benefit & Drawback \\
+\midrule
+Standard GKE & Full node control & Team must manage, patch, and size nodes \\
+GKE Autopilot & Fully managed nodes, pay-per-pod & Slightly less node-level flexibility \\
+Cloud Run & Serverless, zero config & No persistent connections, limited Kubernetes API \\
+\bottomrule
+\end{tabularx}
+\caption{Comparison of GCP compute options for StreamNest microservices.}
+\end{table}
+
+\textbf{GKE Autopilot} was chosen because it eliminates all node management overhead while still providing the full Kubernetes API — essential as StreamNest adds more microservices over time. Billing is per pod resource request rather than per VM, which is more cost-efficient for variable streaming workloads.
+
+\subsection{Project Scaffold and Configuration}
+
+All microservice files were created directly inside Google Cloud Shell, requiring no local installations. Figure~\ref{fig:file_structure} shows the complete project directory structure as scaffolded in Cloud Shell.
+
+\screenshot{screenshots/4.png}{GCP APIs enabled via \texttt{gcloud services enable} and project configuration confirmed with \texttt{gcloud config list} in Cloud Shell — Phase 0 setup complete.}{file_structure}
+
+\subsection{Proof-of-Concept: Content Catalog API}
+
+A \textbf{Content Catalog API} was built in Python/Flask as the representative StreamNest microservice. It exposes three JSON endpoints:
+
+\begin{lstlisting}[style=gcpcode]
+GET /           -> service info + pod hostname (load balancing evidence)
+GET /catalog    -> full JSON content catalog
+GET /catalog/<id> -> individual content item lookup
+\end{lstlisting}
+
+The service was containerised with the following \texttt{Dockerfile}:
+
+\begin{lstlisting}[style=gcpcode]
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY app.py .
+ENV APP_VERSION=v1
+EXPOSE 8080
+CMD ["gunicorn", "-b", "0.0.0.0:8080", "-w", "2", "app:app"]
+\end{lstlisting}
+
+\subsection{Building and Deploying the Image}
+
+The image was built entirely on Google's infrastructure using \textbf{Cloud Build} — no local Docker installation was required:
+
+\begin{lstlisting}[style=gcpcode]
+gcloud builds submit \
+  --tag asia-southeast1-docker.pkg.dev/$PROJECT_ID/
+        streamnest-repo/catalog-api:v1 .
+\end{lstlisting}
+
+The GKE Autopilot cluster was provisioned in \texttt{asia-southeast1} (Singapore) to minimise latency for Southeast Asian users:
+
+\begin{lstlisting}[style=gcpcode]
+gcloud container clusters create-auto streamnest-cluster \
+  --region=asia-southeast1
+\end{lstlisting}
+
+\newpage
+The Kubernetes deployment was applied using a rolling update strategy that guarantees zero downtime:
+
+\begin{lstlisting}[style=gcpcode]
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0   # never remove a pod before its replacement is ready
+\end{lstlisting}
+
+Figure~\ref{fig:build_deploy} shows the successful build and deployment output in Cloud Shell.
+
+\screenshot{screenshots/11.png}{Project directory tree in Cloud Shell showing \texttt{api/}, \texttt{k8s/}, and \texttt{data/} subfolders with all necessary files created.}{build_deploy}
+
+\screenshot{screenshots/13.png}{Cloud Build successfully pushing \texttt{catalog-api:v1} to Artifact Registry, followed by all \texttt{catalog-api} pods confirmed in \texttt{Running} state.}{pods_running}
+
+\screenshot{screenshots/14.png}{Generating the 50,000-row watch events dataset with \texttt{gen\_watch\_events.py} and verifying the CSV header and row count in Cloud Shell.}{ext_ip}
+
+\subsection{Public API Access}
+
+The API is publicly accessible at \texttt{http://34.124.155.31}. The \texttt{/} endpoint returns the hostname of the specific pod that handled the request, making load balancing directly observable by refreshing the browser. Figures~\ref{fig:lb_1} and~\ref{fig:lb_2} show two consecutive requests being served by different pods.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[b]{0.48\linewidth}
+        \fbox{\includegraphics[width=\linewidth]{screenshots/31.png}}
+        \caption{Request served by pod \#1.}
+        \label{fig:lb_1}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\linewidth}
+        \fbox{\includegraphics[width=\linewidth]{screenshots/32.png}}
+        \caption{Same request served by pod \#2.}
+        \label{fig:lb_2}
+    \end{subfigure}
+    \caption{Load balancing in action — consecutive requests to \texttt{/} return different pod hostnames, confirming traffic is distributed across replicas.}
+    \label{fig:load_balancing}
+\end{figure}
+
+\screenshot{screenshots/28.png}{Browser response from \texttt{GET /catalog} — the full JSON content catalog returned by the API.}{browser_catalog}
+
+\subsection{Horizontal Scaling}
+
+Scaling to 6 replicas required a single command and took under 90 seconds:
+
+\begin{lstlisting}[style=gcpcode]
+kubectl scale deployment catalog-api --replicas=6
+\end{lstlisting}
+
+GKE Autopilot automatically provisioned an additional node to schedule the extra pods — no manual node configuration was required.
+
+\screenshot{screenshots/34.png}{Health-check curl loop running in Cloud Shell confirming all \texttt{catalog-api} replicas are responsive during the horizontal scaling test.}{pods_scaled}
+
+\subsection{Zero-Downtime Rolling Redeploy}
+
+A version 2 image was built (with a visible catalog change) and the deployment was updated:
+
+\begin{lstlisting}[style=gcpcode]
+gcloud builds submit --tag \
+  asia-southeast1-docker.pkg.dev/$PROJECT_ID/
+  streamnest-repo/catalog-api:v2 .
+
+kubectl set image deployment/catalog-api catalog-api=$IMAGE_V2
+kubectl rollout status deployment/catalog-api
+\end{lstlisting}
+
+A continuous health-check loop ran in a parallel terminal during the rollout. Figures~\ref{fig:rollout} and~\ref{fig:200loop} show the v2 image build and the unbroken stream of HTTP \texttt{200} responses that prove zero downtime.
+
+\screenshot{screenshots/35.png}{Cloud Build successfully building and pushing \texttt{catalog-api:v2} to Artifact Registry — the updated image that triggers the zero-downtime rolling update.}{rollout}
+
+\screenshot{screenshots/40.png}{Continuous HTTP \texttt{200} responses logged during the rolling redeploy — no failed requests at any point, confirming zero downtime.}{200loop}
+
+\newpage
+% ════════════════════════════════════════════════════════════
+\section{Data Lakehouse on GCS + BigQuery: \mbox{Implementation}}
+% ════════════════════════════════════════════════════════════
+
+\subsection{Why a Lakehouse Architecture}
+
+StreamNest's data problem requires handling two workload types simultaneously: real-time event ingestion at scale, and ad-hoc analytical queries for the data science team. A pure data warehouse (BigQuery only) requires all data to be loaded and structured upfront — expensive and inflexible for raw event logs arriving in varied formats. A pure data lake (Cloud Storage only) has no query layer, leaving data scientists writing custom parsers.
+
+A \textbf{data lakehouse} combines both: raw data is stored cheaply in Cloud Storage (the lake), and BigQuery's external table feature provides a warehouse-grade SQL layer directly on top without moving any data. This is the optimal architecture for StreamNest's mixed workload.
+
+\subsection{Zone Model}
+
+\begin{table}[htbp]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabularx}{\linewidth}{>{\bfseries}l l X}
+\toprule
+Zone & Technology & Purpose \\
+\midrule
+Raw Zone & Cloud Storage & Immutable, schema-free event logs in original format \\
+Curated Zone & BigQuery native tables & Clean, aggregated, schema-enforced, optimised for query \\
+\bottomrule
+\end{tabularx}
+\caption{Data lakehouse zone model for StreamNest.}
+\end{table}
+
+\subsection{Step 1: Raw Dataset in Cloud Storage}
+
+A realistic simulated dataset of \textbf{50,000 watch events} was generated with the following schema — matching StreamNest's actual event structure:
+
+\begin{lstlisting}[style=gcpcode]
+event_id, user_id, content_id, watch_duration_sec,
+device_type, region, event_timestamp
+\end{lstlisting}
+
+The dataset covers 5,000 unique users, 20 content titles, 5 device types (\texttt{Android}, \texttt{iOS}, \texttt{WebTV}, \texttt{SmartTV}, \texttt{Browser}), and 6 Southeast Asian regions over a 30-day window. It was uploaded to a dedicated GCS bucket as the raw ingestion layer:
+
+\begin{lstlisting}[style=gcpcode]
+export BUCKET="sn-datalake-${PROJECT_ID}"
+
+gsutil mb -l asia-southeast1 -p $PROJECT_ID gs://$BUCKET
+
+gsutil cp watch_events.csv \
+  gs://$BUCKET/raw/watch_events/watch_events.csv
+\end{lstlisting}
+
+\screenshot{screenshots/22.png}{Cloud Storage bucket showing \texttt{watch\_events.csv} (4.3 MiB, 50,000 rows) stored under the \texttt{raw/watch\_events/} path — the raw ingestion zone.}{gcs_bucket}
+
+\subsection{Step 2: BigQuery External Table}
+
+An external table was created over the GCS file, enabling SQL queries without data movement. BigQuery reads the CSV directly from Cloud Storage at query time — the raw zone data remains immutable and untouched.
+
+\begin{lstlisting}[style=sqlstyle]
+CREATE OR REPLACE EXTERNAL TABLE
+  `cloud-assignment-2-495322.streamnest_lake.watch_events_ext` (
+    event_id           STRING,
+    user_id            STRING,
+    content_id         STRING,
+    watch_duration_sec INT64,
+    device_type        STRING,
+    region             STRING,
+    event_timestamp    TIMESTAMP
+)
+OPTIONS (
+  format = 'CSV',
+  uris   = ['gs://sn-datalake-cloud-assignment-2-495322/
+             raw/watch_events/*.csv'],
+  skip_leading_rows = 1
+);
+\end{lstlisting}
+
+\screenshot{screenshots/20.png}{BigQuery query editor showing the aggregation SQL executing against \texttt{watch\_events\_ext}, with the \texttt{streamnest\_lake} dataset (containing both tables) visible in the left sidebar.}{bq_sidebar}
+
+\screenshot{screenshots/23.png}{\texttt{CREATE EXTERNAL TABLE} statement for \texttt{watch\_events\_ext} with a sample of query results confirming data is accessible directly from Cloud Storage — no ETL or data movement required.}{bq_schema}
+
+\subsection{Step 3: Curated Aggregated Table}
+
+A native BigQuery table was created to answer a core business question: \textbf{``What are the top 5 most-watched content titles in each region?''} This directly feeds StreamNest's content recommendation engine and executive reporting. Figures~\ref{fig:bq_query} and~\ref{fig:bq_table} show the table creation confirmation and the final aggregated data.
+
+\screenshot{screenshots/19.png}{BigQuery confirming successful creation of the \texttt{top\_content\_by\_region} curated table — the \textit{Query completed} message confirms the native table was populated from the aggregation.}{bq_query}
+
+The SQL used to produce this table is as follows:
+
+\begin{lstlisting}[style=sqlstyle]
+CREATE OR REPLACE TABLE
+  `cloud-assignment-2-495322.streamnest_lake.top_content_by_region` AS
+SELECT
+  region,
+  content_id,
+  COUNT(*)                                   AS view_count,
+  ROUND(SUM(watch_duration_sec)/3600.0, 2)  AS total_watch_hours,
+  ROUND(AVG(watch_duration_sec), 1)          AS avg_watch_sec
+FROM `cloud-assignment-2-495322.streamnest_lake.watch_events_ext`
+GROUP BY region, content_id
+QUALIFY
+  RANK() OVER (
+    PARTITION BY region
+    ORDER BY SUM(watch_duration_sec) DESC
+  ) <= 5
+ORDER BY region, total_watch_hours DESC;
+\end{lstlisting}
+
+\screenshot{screenshots/21.png}{Final \texttt{top\_content\_by\_region} table preview showing the top content per region ranked by total watch hours — ready for the recommendation team to consume.}{bq_table}
+
+The resulting table gives the data science team a clean, pre-aggregated view they can immediately use for recommendation model training, content acquisition decisions, and regional marketing campaigns.
+
+\newpage
+% ════════════════════════════════════════════════════════════
+\section{Scalability \& Cost Analysis}
+% ════════════════════════════════════════════════════════════
+
+\subsection{GKE Autopilot Scaling}
+
+\begin{itemize}
+    \item \textbf{Manual scaling:} \texttt{kubectl scale} adjusts replicas in under 90 seconds, with Autopilot auto-provisioning nodes as needed — no capacity planning required.
+    \item \textbf{Automatic scaling:} A Horizontal Pod Autoscaler (HPA) can be added in production to scale pods on CPU utilisation or custom metrics (e.g., requests-per-second), enabling hands-off scaling during peak streaming hours.
+    \item \textbf{Zero-downtime updates:} The \texttt{maxUnavailable: 0} rolling update strategy guarantees no user-visible disruption during any deployment.
+\end{itemize}
+
+\subsection{BigQuery Scaling}
+
+BigQuery is a fully serverless, distributed query engine that scales automatically to petabytes with no infrastructure changes. There is no capacity planning — query slots scale on demand. On-demand pricing means \textbf{zero cost when idle}, making it ideal for a data science team with variable query patterns.
+
+\newpage
+\subsection{Cloud Storage Cost Optimisation}
+
+GCS lifecycle rules reduce storage cost progressively as data ages:
+
+\begin{table}[htbp]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{lll}
+\toprule
+\textbf{Age} & \textbf{Storage Class} & \textbf{Approx. Cost} \\
+\midrule
+0–30 days   & Standard  & \$0.020/GB/month \\
+30–90 days  & Nearline   & \$0.010/GB/month \\
+90+ days    & Coldline   & \$0.004/GB/month \\
+\bottomrule
+\end{tabular}
+\caption{GCS lifecycle policy — 80\% cost reduction for data older than 90 days.}
+\end{table}
+
+\subsection{Estimated Monthly Cost}
+
+\begin{table}[htbp]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{lll}
+\toprule
+\textbf{Service} & \textbf{Resource} & \textbf{Est. Monthly Cost} \\
+\midrule
+GKE Autopilot       & 3 pods × 0.25 CPU / 256 Mi       & \textasciitilde\$25–40 \\
+Cloud Load Balancer & 1 rule + data processing          & \textasciitilde\$18–20 \\
+Artifact Registry   & 2 image tags stored               & \textasciitilde\$0.10  \\
+Cloud Storage       & 4.3 MiB raw data                  & \textless\$0.01        \\
+BigQuery            & On-demand queries on 50K rows     & \textless\$0.01        \\
+Cloud Build         & 2 builds (free tier: 120 min/day) & \$0.00                 \\
+\midrule
+\textbf{Total PoC}  &                                   & \textbf{\textasciitilde\$43–60/month} \\
+\bottomrule
+\end{tabular}
+\caption{Estimated monthly cost for the proof-of-concept deployment.}
+\end{table}
+
+At production scale (2M+ users), costs scale \textbf{sub-linearly} due to bin-packing efficiency and BigQuery's shared compute model, meaning cost-per-user decreases as StreamNest grows.
+
+% ════════════════════════════════════════════════════════════
+\section{Security \& Operations}
+% ════════════════════════════════════════════════════════════
+
+\subsection{Identity and Access Management}
+
+\begin{itemize}
+    \item \textbf{Workload Identity:} GKE pods authenticate to GCP APIs using Workload Identity, binding a Kubernetes service account to a GCP service account — eliminating static API keys inside containers.
+    \item \textbf{Least-privilege IAM:} Each microservice gets its own GCP service account with only the permissions it needs. The Catalog API has no BigQuery access; the data pipeline has no GKE access.
+\end{itemize}
+
+\subsection{Network Security}
+
+\begin{itemize}
+    \item \textbf{Private GKE cluster} (production): nodes have no public IPs; access is via Private Google Access and authorised networks only.
+    \item \textbf{VPC Service Controls} around BigQuery and GCS prevent data exfiltration even if credentials are compromised.
+    \item \textbf{HTTPS termination} at the Load Balancer with Google-managed SSL certificates.
+\end{itemize}
+
+\subsection{Data Security}
+
+\begin{itemize}
+    \item All data in Cloud Storage and BigQuery is \textbf{encrypted at rest by default} using Google-managed AES-256 keys. Customer-Managed Encryption Keys (CMEK) can be applied to sensitive data such as billing records.
+    \item BigQuery \textbf{column-level security} can restrict access to PII fields (e.g., \texttt{user\_id}) to authorised roles only.
+\end{itemize}
+
+\subsection{Observability}
+
+\begin{itemize}
+    \item \textbf{Cloud Logging:} All container stdout/stderr is automatically captured and queryable; BigQuery audit logs track every query.
+    \item \textbf{Cloud Monitoring:} GKE dashboards expose CPU, memory, and requests-per-second metrics. Alerting policies can page on-call engineers if pod crash rate or API latency exceeds defined thresholds.
+\end{itemize}
+
+% ════════════════════════════════════════════════════════════
+\section{Roadmap to Production}
+% ════════════════════════════════════════════════════════════
+
+The proof-of-concept demonstrates the architecture works end-to-end. Moving to full production requires the following additions in priority order:
+
+\begin{enumerate}
+    \item \textbf{Real-time streaming pipeline:} Replace the CSV batch upload with \textbf{Pub/Sub → Dataflow → BigQuery} to ingest watch events in real time, reducing data latency from hours to seconds.
+
+    \item \textbf{CI/CD pipeline:} Connect GitHub to \textbf{Cloud Build} triggers so every merge to \texttt{main} automatically tests, builds a new container image, and deploys it to GKE — eliminating all manual deployment steps.
+
+    \item \textbf{Transformation layer with dbt:} Adopt \textbf{dbt} for SQL transformations from raw to curated zones. dbt provides version control, automated testing, and lineage documentation for all data pipelines.
+
+    \item \textbf{BI dashboards:} Connect \textbf{Looker Studio} to the curated BigQuery tables to give executives self-service dashboards with no engineering involvement.
+
+    \item \textbf{ML-powered recommendations:} Feed curated watch-history tables into \textbf{Vertex AI} to train personalised recommendation models, replacing static content browsing with dynamic, user-specific suggestions.
+
+    \item \textbf{Additional microservices:} Containerise the authentication service and billing service following the same Dockerfile + GKE deployment pattern, and add them to the existing cluster as independent Deployments.
+\end{enumerate}
+
+% ════════════════════════════════════════════════════════════
+\section{Conclusion}
+% ════════════════════════════════════════════════════════════
+
+This proposal presents a production-ready architecture for StreamNest's migration to Google Cloud Platform, grounded in a working proof-of-concept that demonstrates each component end-to-end. The two-pillar approach — GKE Autopilot for containerised microservices and a GCS + BigQuery data lakehouse — directly and simultaneously addresses StreamNest's two core problems: deployment fragility and analytical data access.
+
+The proof-of-concept shows that a containerised service can be deployed, scaled from 3 to 6 replicas, and redeployed with an updated version — all without a single failed health check. It also shows that 50,000 simulated watch events can be stored cheaply in Cloud Storage and queried via BigQuery SQL in seconds to produce real business insights.
+
+This architecture scales to StreamNest's current 2 million users and well beyond, with costs that decrease per-user as the platform grows. We recommend beginning the production migration with the CI/CD pipeline and real-time streaming components as the highest-impact next steps.
+
+% ════════════════════════════════════════════════════════════
+\appendix
+\newpage
+\section{Commands \& Manifests Reference}
+% ════════════════════════════════════════════════════════════
+
+\subsection{Kubernetes Deployment Manifest}
+
+\begin{lstlisting}[style=gcpcode]
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: catalog-api }
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+  template:
+    metadata:
+      labels: { app: catalog-api }
+    spec:
+      containers:
+        - name: catalog-api
+          image: asia-southeast1-docker.pkg.dev/
+                 cloud-assignment-2-495322/
+                 streamnest-repo/catalog-api:v2
+          ports: [{ containerPort: 8080 }]
+          readinessProbe:
+            httpGet: { path: /health, port: 8080 }
+          resources:
+            requests: { cpu: "250m", memory: "256Mi" }
+            limits:   { cpu: "500m", memory: "512Mi" }
+\end{lstlisting}
+
+\subsection{Kubernetes Service Manifest}
+
+\begin{lstlisting}[style=gcpcode]
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog-api-svc
+spec:
+  type: LoadBalancer
+  selector: { app: catalog-api }
+  ports:
+    - port: 80
+      targetPort: 8080
+\end{lstlisting}
+
+\subsection{BigQuery DDL — External Table}
+
+\begin{lstlisting}[style=sqlstyle]
+CREATE OR REPLACE EXTERNAL TABLE
+  `cloud-assignment-2-495322.streamnest_lake.watch_events_ext` (
+    event_id           STRING,
+    user_id            STRING,
+    content_id         STRING,
+    watch_duration_sec INT64,
+    device_type        STRING,
+    region             STRING,
+    event_timestamp    TIMESTAMP
+)
+OPTIONS (
+  format = 'CSV',
+  uris   = ['gs://sn-datalake-cloud-assignment-2-495322/
+             raw/watch_events/*.csv'],
+  skip_leading_rows = 1
+);
+\end{lstlisting}
+
+\subsection{BigQuery DDL — Curated Aggregated Table}
+
+\begin{lstlisting}[style=sqlstyle]
+CREATE OR REPLACE TABLE
+  `cloud-assignment-2-495322.streamnest_lake.top_content_by_region`
+AS
+SELECT
+  region,
+  content_id,
+  COUNT(*)                                  AS view_count,
+  ROUND(SUM(watch_duration_sec)/3600.0, 2) AS total_watch_hours,
+  ROUND(AVG(watch_duration_sec), 1)         AS avg_watch_sec
+FROM `cloud-assignment-2-495322.streamnest_lake.watch_events_ext`
+GROUP BY region, content_id
+QUALIFY
+  RANK() OVER (
+    PARTITION BY region
+    ORDER BY SUM(watch_duration_sec) DESC
+  ) <= 5
+ORDER BY region, total_watch_hours DESC;
+\end{lstlisting}
+
+% ════════════════════════════════════════════════════════════
+\section{Overleaf Upload Checklist}
+% ════════════════════════════════════════════════════════════
+
+Upload the following to your Overleaf project before compiling:
+
+\begin{table}[htbp]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{lll}
+\toprule
+\textbf{File} & \textbf{Upload location} & \textbf{Used in} \\
+\midrule
+\texttt{architecture.png}    & Root folder              & Section 3 \\
+\texttt{screenshots/1.png}   & \texttt{screenshots/} folder & Section 1 \\
+\texttt{screenshots/4.png}   & \texttt{screenshots/} folder & Section 4 \\
+\texttt{screenshots/11.png}  & \texttt{screenshots/} folder & Section 4 \\
+\texttt{screenshots/13.png}  & \texttt{screenshots/} folder & Section 4 \\
+\texttt{screenshots/14.png}  & \texttt{screenshots/} folder & Section 4 \\
+\texttt{screenshots/19.png}  & \texttt{screenshots/} folder & Section 5 \\
+\texttt{screenshots/20.png}  & \texttt{screenshots/} folder & Section 5 \\
+\texttt{screenshots/21.png}  & \texttt{screenshots/} folder & Section 5 \\
+\texttt{screenshots/22.png}  & \texttt{screenshots/} folder & Section 5 \\
+\texttt{screenshots/23.png}  & \texttt{screenshots/} folder & Section 5 \\
+\texttt{screenshots/28.png}  & \texttt{screenshots/} folder & Section 4 \\
+\texttt{screenshots/31.png}  & \texttt{screenshots/} folder & Section 4 \\
+\texttt{screenshots/32.png}  & \texttt{screenshots/} folder & Section 4 \\
+\texttt{screenshots/34.png}  & \texttt{screenshots/} folder & Section 4 \\
+\texttt{screenshots/35.png}  & \texttt{screenshots/} folder & Section 4 \\
+\texttt{screenshots/40.png}  & \texttt{screenshots/} folder & Section 4 \\
+\texttt{screenshots/42.png}  & \texttt{screenshots/} folder & Appendix C \\
+\texttt{screenshots/43.png}  & \texttt{screenshots/} folder & Appendix C \\
+\bottomrule
+\end{tabular}
+\caption{Files to upload to Overleaf before compiling.}
+\end{table}
+
+% ════════════════════════════════════════════════════════════
+\newpage
+\section{Resource Cleanup}
+% ════════════════════════════════════════════════════════════
+
+All proof-of-concept resources were deleted after the demonstration to prevent ongoing billing charges. The teardown removed every GCP resource provisioned during the assignment in the following order:
+
+\begin{enumerate}
+  \item Kubernetes Service and Deployment (via \texttt{kubectl delete})
+  \item Cloud Storage bucket (\texttt{sn-datalake-cloud-assignment-2-495322}) and all objects
+  \item Artifact Registry repository (\texttt{streamnest-repo})
+  \item GKE Autopilot cluster (\texttt{streamnest-cluster})
+  \item BigQuery dataset (\texttt{streamnest\_lake}) including all tables
+\end{enumerate}
+
+\screenshot{screenshots/42.png}{Cloud Shell showing deletion of the GKE workloads (service and deployment) and the Cloud Storage bucket during proof-of-concept teardown.}{cleanup_1}
+
+\screenshot{screenshots/43.png}{Successful deletion of the GKE Autopilot cluster (\texttt{streamnest-cluster}) and BigQuery dataset — all proof-of-concept resources removed to prevent ongoing billing.}{cleanup_2}
+
+\end{document}
